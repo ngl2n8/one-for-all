@@ -418,7 +418,7 @@ $buttonPing.Add_Click({
 $buttonCustomPing.Add_Click({
     $hostname = $textBoxCustomPing.Text.Trim()
     if ($hostname) {
-        $textBoxNetworkInfo.Text = "Пинг $hostname...`r`n"
+        $textBoxNetworkInfo.Text = "Пинг ${hostname}...`r`n"
         try {
             $ping = Test-Connection -ComputerName $hostname -Count 4 -ErrorAction Stop
             foreach ($p in $ping) {
@@ -441,7 +441,7 @@ $buttonConnections.Add_Click({
 $buttonDnsLookup.Add_Click({
     $hostname = $textBoxCustomPing.Text.Trim()
     if ($hostname) {
-        $textBoxNetworkInfo.Text = "DNS запрос для $hostname:`r`n"
+        $textBoxNetworkInfo.Text = "DNS запрос для ${hostname}:`r`n"
         try {
             $dns = Resolve-DnsName -Name $hostname -ErrorAction Stop
             $dns | ForEach-Object {
@@ -456,7 +456,7 @@ $buttonDnsLookup.Add_Click({
 $buttonTraceRoute.Add_Click({
     $hostname = $textBoxCustomPing.Text.Trim()
     if ($hostname) {
-        $textBoxNetworkInfo.Text = "Трассировка до $hostname:`r`n"
+        $textBoxNetworkInfo.Text = "Трассировка до ${hostname}:`r`n"
         try {
             $trace = Test-NetConnection -ComputerName $hostname -TraceRoute -ErrorAction Stop
             $hopNum = 1
@@ -703,4 +703,77 @@ $buttonRegRead.Add_Click({
                 $textBoxRegResult.Text += "  [$_]`r`n"
             }
             $textBoxRegResult.Text += "`r`nЗначения:`r`n"
-            foreach ($prop in $reg
+            foreach ($prop in $regItems.Property) {
+                $value = $regItems.GetValue($prop)
+                if ($value -is [byte[]]) {
+                    $value = "0x$([System.BitConverter]::ToString($value) -replace '-',',0x')"
+                }
+                $textBoxRegResult.Text += "  $prop`: $value ($($regItems.GetValueKind($prop)))`r`n"
+            }
+        } catch {
+            $textBoxRegResult.Text = "Ошибка: $($_.Exception.Message)"
+        }
+    }
+})
+
+$buttonRegDelete.Add_Click({
+    $regPath = $textBoxRegPath.Text.Trim()
+    if ($regPath) {
+        $result = [System.Windows.Forms.MessageBox]::Show("Удалить ветку реестра $regPath?`nЭто действие необратимо!", "Опасно!", 'YesNo', 'Warning')
+        if ($result -eq 'Yes') {
+            try {
+                Remove-Item -Path $regPath -Recurse -Force -ErrorAction Stop
+                $textBoxRegResult.Text = "Ветка $regPath успешно удалена"
+                [System.Windows.Forms.MessageBox]::Show("Ветка реестра удалена", "Успех")
+            } catch {
+                $textBoxRegResult.Text = "Ошибка удаления: $($_.Exception.Message)"
+            }
+        }
+    }
+})
+
+$buttonRegExport.Add_Click({
+    $regPath = $textBoxRegPath.Text.Trim()
+    if ($regPath) {
+        $saveFileDialog = [System.Windows.Forms.SaveFileDialog]::new()
+        $saveFileDialog.Filter = "Registry files (*.reg)|*.reg"
+        $saveFileDialog.FileName = "registry_export_$(Get-Date -Format 'yyyyMMdd_HHmmss').reg"
+        if ($saveFileDialog.ShowDialog() -eq 'OK') {
+            try {
+                reg export $($regPath -replace 'HKCU:', 'HKEY_CURRENT_USER' -replace 'HKLM:', 'HKEY_LOCAL_MACHINE' -replace 'HKCR:', 'HKEY_CLASSES_ROOT' -replace 'HKU:', 'HKEY_USERS' -replace 'HKCC:', 'HKEY_CURRENT_CONFIG') $saveFileDialog.FileName
+                [System.Windows.Forms.MessageBox]::Show("Ветка реестра экспортирована в .reg файл", "Успех")
+            } catch {
+                $textBoxRegResult.Text = "Ошибка экспорта: $($_.Exception.Message)"
+            }
+        }
+    }
+})
+
+$buttonRegBackup.Add_Click({
+    $regPath = $textBoxRegPath.Text.Trim()
+    if ($regPath) {
+        $saveFileDialog = [System.Windows.Forms.SaveFileDialog]::new()
+        $saveFileDialog.Filter = "Registry files (*.reg)|*.reg"
+        $saveFileDialog.FileName = "registry_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss').reg"
+        if ($saveFileDialog.ShowDialog() -eq 'OK') {
+            try {
+                reg export $($regPath -replace 'HKCU:', 'HKEY_CURRENT_USER' -replace 'HKLM:', 'HKEY_LOCAL_MACHINE' -replace 'HKCR:', 'HKEY_CLASSES_ROOT' -replace 'HKU:', 'HKEY_USERS' -replace 'HKCC:', 'HKEY_CURRENT_CONFIG') $saveFileDialog.FileName /y
+                [System.Windows.Forms.MessageBox]::Show("Бэкап создан: $($saveFileDialog.FileName)", "Успех")
+            } catch {
+                $textBoxRegResult.Text = "Ошибка бэкапа: $($_.Exception.Message)"
+            }
+        }
+    }
+})
+
+$tabRegistry.Controls.AddRange(@($labelRegPath, $textBoxRegPath, $buttonRegRead, $buttonRegDelete, $textBoxRegResult, $buttonRegExport, $buttonRegBackup, $buttonRegQuickAccess))
+
+$tabControl.Controls.AddRange(@($tabCleanup, $tabSystem, $tabProcesses, $tabNetwork, $tabServices, $tabRegistry))
+
+$form.Controls.Add($tabControl)
+
+$form.Topmost = $true
+$buttonRefreshSys.PerformClick()
+$buttonRefreshProc.PerformClick()
+$buttonRefreshServices.PerformClick()
+$form.ShowDialog()
