@@ -3,7 +3,7 @@ Add-Type -AssemblyName System.Drawing
 
 # Создаем основную форму
 $form = [System.Windows.Forms.Form]::new()
-$form.Text = 'PowerShell Swiss Army Knife'
+$form.Text = 'SADOVNIK`s one for all'
 $form.Size = '600,500'
 $form.StartPosition = 'CenterScreen'
 $form.FormBorderStyle = 'FixedDialog'
