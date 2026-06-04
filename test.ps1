@@ -4,7 +4,7 @@ Add-Type -AssemblyName System.Drawing
 
 
 $form = [System.Windows.Forms.Form]::new()
-$form.Text = 'Мой Швейцарский Нож'
+$form.Text = 'Один за всех'
 $form.Size = '500,200'
 $form.StartPosition = 'CenterScreen'
 
