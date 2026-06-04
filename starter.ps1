@@ -1,6 +1,6 @@
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Host "Запрос прав администратора..." -ForegroundColor Yellow
-    Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
+    Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"& {irm https://raw.githubusercontent.com/ngl2n8/all-for-one/main/test.ps1 | iex; Read-Host 'Нажмите Enter для выхода'}`""
     exit
 }
 
