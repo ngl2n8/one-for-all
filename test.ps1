@@ -1,6 +1,6 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-
+$ErrorActionPreference = 'SilentlyContinue'
 $form = [System.Windows.Forms.Form]::new()
 $form.Text = 'PowerShell Swiss Army Knife'
 $form.Size = '700,550'
