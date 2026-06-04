@@ -161,24 +161,30 @@ $buttonExportSys.Location = '330,300'
 $buttonExportSys.Size = '150,30'
 
 $buttonRefreshSys.Add_Click({
+    $os = Get-CimInstance Win32_OperatingSystem
+    $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1
+    $computer = Get-CimInstance Win32_ComputerSystem
+    $gpu = Get-CimInstance Win32_VideoController | Select-Object -First 1
+    $uptime = (Get-Date) - $os.LastBootUpTime
+    
     $info = @"
 Системная информация:
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-Имя компьютера: $env:COMPUTERNAME
+Имя компьютера: $($computer.Name)
 Пользователь: $env:USERNAME
-ОС: $(Get-CimInstance Win32_OperatingSystem).Caption
-Версия: $(Get-CimInstance Win32_OperatingSystem).Version
-Архитектура: $(Get-CimInstance Win32_OperatingSystem).OSArchitecture
-Последняя загрузка: $(Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+ОС: $($os.Caption)
+Версия: $($os.Version)
+Архитектура: $($os.OSArchitecture)
+Последняя загрузка: $($os.LastBootUpTime)
 
 Аппаратное обеспечение:
 ━━━━━━━━━━━━━━━━━━━━━━━━━
-Процессор: $(Get-CimInstance Win32_Processor | Select-Object -First 1).Name
-Ядра: $(Get-CimInstance Win32_Processor | Select-Object -First 1).NumberOfCores
-Логические процессоры: $(Get-CimInstance Win32_Processor | Select-Object -First 1).NumberOfLogicalProcessors
-ОЗУ: $([math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB, 2)) GB
-Свободно ОЗУ: $([math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB, 2)) GB
-Видеокарта: $(Get-CimInstance Win32_VideoController | Select-Object -First 1).Name
+Процессор: $($cpu.Name)
+Ядра: $($cpu.NumberOfCores)
+Логические процессоры: $($cpu.NumberOfLogicalProcessors)
+ОЗУ: $([math]::Round($computer.TotalPhysicalMemory/1GB, 2)) GB
+Свободно ОЗУ: $([math]::Round($os.FreePhysicalMemory/1MB, 2)) GB
+Видеокарта: $($gpu.Name)
 
 Диски:
 ━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -189,7 +195,7 @@ $((Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" | ForEach-Object {
     "$($_.DeviceID)\ $free GB свободно из $total GB ($percentFree%)"
 }) -join "`n")
 
-Время работы: $(((Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime).Days) дней $(((Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime).Hours) часов
+Время работы: $($uptime.Days) дней $($uptime.Hours) часов $($uptime.Minutes) минут
 "@
     $textBoxSysInfo.Text = $info
 })
@@ -708,7 +714,7 @@ $buttonRegRead.Add_Click({
                 if ($value -is [byte[]]) {
                     $value = "0x$([System.BitConverter]::ToString($value) -replace '-',',0x')"
                 }
-                $textBoxRegResult.Text += "  $prop`: $value ($($regItems.GetValueKind($prop)))`r`n"
+                $textBoxRegResult.Text += "  ${prop}: $value ($($regItems.GetValueKind($prop)))`r`n"
             }
         } catch {
             $textBoxRegResult.Text = "Ошибка: $($_.Exception.Message)"
@@ -740,7 +746,8 @@ $buttonRegExport.Add_Click({
         $saveFileDialog.FileName = "registry_export_$(Get-Date -Format 'yyyyMMdd_HHmmss').reg"
         if ($saveFileDialog.ShowDialog() -eq 'OK') {
             try {
-                reg export $($regPath -replace 'HKCU:', 'HKEY_CURRENT_USER' -replace 'HKLM:', 'HKEY_LOCAL_MACHINE' -replace 'HKCR:', 'HKEY_CLASSES_ROOT' -replace 'HKU:', 'HKEY_USERS' -replace 'HKCC:', 'HKEY_CURRENT_CONFIG') $saveFileDialog.FileName
+                $nativePath = $regPath -replace 'HKCU:', 'HKEY_CURRENT_USER' -replace 'HKLM:', 'HKEY_LOCAL_MACHINE' -replace 'HKCR:', 'HKEY_CLASSES_ROOT' -replace 'HKU:', 'HKEY_USERS' -replace 'HKCC:', 'HKEY_CURRENT_CONFIG'
+                reg export $nativePath $saveFileDialog.FileName
                 [System.Windows.Forms.MessageBox]::Show("Ветка реестра экспортирована в .reg файл", "Успех")
             } catch {
                 $textBoxRegResult.Text = "Ошибка экспорта: $($_.Exception.Message)"
@@ -757,7 +764,8 @@ $buttonRegBackup.Add_Click({
         $saveFileDialog.FileName = "registry_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss').reg"
         if ($saveFileDialog.ShowDialog() -eq 'OK') {
             try {
-                reg export $($regPath -replace 'HKCU:', 'HKEY_CURRENT_USER' -replace 'HKLM:', 'HKEY_LOCAL_MACHINE' -replace 'HKCR:', 'HKEY_CLASSES_ROOT' -replace 'HKU:', 'HKEY_USERS' -replace 'HKCC:', 'HKEY_CURRENT_CONFIG') $saveFileDialog.FileName /y
+                $nativePath = $regPath -replace 'HKCU:', 'HKEY_CURRENT_USER' -replace 'HKLM:', 'HKEY_LOCAL_MACHINE' -replace 'HKCR:', 'HKEY_CLASSES_ROOT' -replace 'HKU:', 'HKEY_USERS' -replace 'HKCC:', 'HKEY_CURRENT_CONFIG'
+                reg export $nativePath $saveFileDialog.FileName /y
                 [System.Windows.Forms.MessageBox]::Show("Бэкап создан: $($saveFileDialog.FileName)", "Успех")
             } catch {
                 $textBoxRegResult.Text = "Ошибка бэкапа: $($_.Exception.Message)"
